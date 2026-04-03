@@ -1,0 +1,5 @@
+.env
+vendor/
+*.exe
+AI-assistent
+.idea/

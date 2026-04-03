@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tts-server
+  labels:
+    app: tts-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tts-server
+  template:
+    metadata:
+      labels:
+        app: tts-server
+    spec:
+      containers:
+        - name: tts-server
+          image: liyf/tts-server:v1   # 替换为你的镜像地址
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MIMO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tts-secret
+                  key: MIMO_API_KEY
+            - name: MIMO_ENDPOINT
+              value: "https://api.xiaomimimo.com/v1/chat/completions"
+            - name: SERVER_PORT
+              value: "8080"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30

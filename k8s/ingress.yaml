@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tts-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: tts.yourdomain.com  # 替换为你的域名
+      http:
+        paths:
+          # API 请求转发到后端
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: tts-service
+                port:
+                  number: 80
+          # 健康检查转发到后端
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: tts-service
+                port:
+                  number: 80
+          # 其余请求转发到前端
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tts-frontend-service
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - tts.yourdomain.com  # 替换为你的域名
+      secretName: tls-secret  # 你的 TLS 证书 Secret
