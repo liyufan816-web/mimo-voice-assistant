@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
-	"AI-assistent/config"
-	"AI-assistent/handler"
-	"AI-assistent/service"
+	"github.com/liyufan816-web/mimo-voice-assistant/config"
+	"github.com/liyufan816-web/mimo-voice-assistant/handler"
+	"github.com/liyufan816-web/mimo-voice-assistant/service"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -21,19 +21,32 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 
 	// 加载配置
-	cfg, err := config.LoadConfig()
+	appCfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("加载配置失败: %v", err)
+		log.Fatalf("加载应用配置失败：%v", err)
 	}
 
-	// 初始化服务
-	ttsService := service.NewTTSService(cfg)
-	ttsHandler := handler.NewTTSHandler(ttsService)
+	// 初始化数据库连接
+	dbCfg := config.LoadDatabaseConfig()
+	if err := config.InitDB(dbCfg); err != nil {
+		log.Fatalf("初始化数据库失败：%v", err)
+	}
+	defer func() {
+		if err := config.CloseDB(); err != nil {
+			log.Printf("关闭数据库连接失败：%v", err)
+		}
+	}()
 
-	// 创建Gin路由器
+	// 初始化服务
+	ttsService := service.NewTTSService(appCfg)
+	ttsHandler := handler.NewTTSHandler(ttsService)
+	authHandler := handler.NewAuthHandler()
+	historyHandler := handler.NewHistoryHandler()
+
+	// 创建 Gin 路由器
 	router := gin.Default()
 
-	// 配置CORS
+	// 配置 CORS
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
 	corsConfig.AllowMethods = []string{"GET", "POST", "OPTIONS"}
@@ -49,17 +62,39 @@ func main() {
 	// 健康检查
 	router.GET("/health", ttsHandler.HealthCheck)
 
-	// TTS相关路由
-	api := router.Group("/api/v1")
+	// 公开路由（无需认证）
+	public := router.Group("/api/v1")
 	{
+		// 认证相关
+		public.POST("/auth/register", authHandler.Register)
+		public.POST("/auth/login", authHandler.Login)
+		public.GET("/auth/check-exists", authHandler.CheckUserExists)
+	}
+
+	// 需要认证的路由
+	api := router.Group("/api/v1")
+	api.Use(authHandler.Middleware())
+	{
+		// TTS 相关
 		api.POST("/tts/convert", ttsHandler.ConvertText)
 		api.POST("/tts/batch", ttsHandler.BatchConvert)
 		api.GET("/tts/voices", ttsHandler.GetVoices)
+
+		// 用户信息
+		api.GET("/user/info", authHandler.GetUserInfo)
+		api.GET("/user/api-key", authHandler.GetAPIKey)
+
+		// 历史记录
+		api.GET("/history", historyHandler.GetUserHistory)
+		api.GET("/history/:id", historyHandler.GetRecordDetail)
+		api.DELETE("/history/:id", historyHandler.DeleteRecord)
+		api.DELETE("/history", historyHandler.ClearUserHistory)
+		api.GET("/history/export", historyHandler.ExportUserHistory)
 	}
 
 	// 启动服务器
-	log.Printf("服务器启动在端口 %s", cfg.ServerPort)
-	if err := router.Run(":" + cfg.ServerPort); err != nil {
-		log.Fatalf("启动服务器失败: %v", err)
+	log.Printf("服务器启动在端口 %s", appCfg.ServerPort)
+	if err := router.Run(":" + appCfg.ServerPort); err != nil {
+		log.Fatalf("启动服务器失败：%v", err)
 	}
 }
