@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-scripts
+  namespace: mysql
+data:
+  init.sql: |
+    -- 创建应用数据库                                                                                                                                                                                                                                                                                                 
+    CREATE DATABASE IF NOT EXISTS mimo_tts;
+    
+    -- 创建应用用户并授权                                                                                                                                                                                                                                                                                             
+    GRANT ALL PRIVILEGES ON mimo_tts.* TO 'mimo_user'@'%';
+    FLUSH PRIVILEGES;
+    
+    -- 可选：设置时区                                                                                                                                                                                                                                                                                                 
+    SET GLOBAL time_zone = '+8:00';

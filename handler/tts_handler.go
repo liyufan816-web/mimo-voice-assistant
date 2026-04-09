@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"AI-assistent/model"
-	"AI-assistent/service"
-	"AI-assistent/utils"
+	"github.com/liyufan816-web/mimo-voice-assistant/model"
+	"github.com/liyufan816-web/mimo-voice-assistant/service"
+	"github.com/liyufan816-web/mimo-voice-assistant/utils"
 
 	"github.com/gin-gonic/gin"
 )

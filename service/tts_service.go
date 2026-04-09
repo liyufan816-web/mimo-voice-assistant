@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"AI-assistent/config"
-	"AI-assistent/model"
+	"github.com/liyufan816-web/mimo-voice-assistant/config"
+	"github.com/liyufan816-web/mimo-voice-assistant/model"
 )
 
 type TTSService struct {
